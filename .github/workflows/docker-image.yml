@@ -8,13 +8,12 @@ on:
 
 jobs:
 
+
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-
+    
     - name: Setup JDK 11
       uses: actions/setup-java@v3
       with:
@@ -39,3 +38,31 @@ jobs:
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:latest
           ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.run_number }}
+
+  update-manifest:
+      needs: build
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout Manifest Repository
+        uses: actions/checkout@v4
+        with:
+          repository: 'OShaikhDevOps/spring-boot-app-manifests' # Target repo
+          token: ${{ secrets.GITOPS_PAT }} # Use the PAT you created
+          path: 'spring-boot-app-manifests'
+
+      - name: Update Image Tag
+        run: |
+          cd spring-boot-app-manifests
+          # Use sed to find the image line and replace the tag with the build number
+          # Assumes your YAML has 'image: osmanshaikh/spring-boot-app:tag'
+          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.run_number }}|g" deployment.yml
+
+      - name: Commit and Push Changes
+        run: |
+          cd spring-boot-app-manifests
+          git config --global user.email "usman_s@msn.com"
+          git config --global user.name "usman"
+          git add deployment.yml
+          git commit -m "Update image to build ${{ github.run_number }}"
+          git push origin main
+          

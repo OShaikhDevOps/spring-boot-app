@@ -7,8 +7,6 @@ on:
     branches: [ "main" ]
 
 jobs:
-
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -40,29 +38,34 @@ jobs:
           ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.run_number }}
 
   update-manifest:
-      needs: build
-      runs-on: ubuntu-latest
-      steps:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout Manifest Repository
         uses: actions/checkout@v4
         with:
-          repository: 'OShaikhDevOps/spring-boot-app-manifests' # Target repo
-          token: ${{ secrets.GITOPS_PAT }} # Use the PAT you created
+          repository: 'OShaikhDevOps/spring-boot-app-manifests'
+          token: ${{ secrets.GITOPS_PAT }}
           path: 'spring-boot-app-manifests'
 
-      - name: Update Image Tag
+      - name: Update Image Tag and Push
+        env:
+          PAT: ${{ secrets.GITOPS_PAT }}
         run: |
           cd spring-boot-app-manifests
-          # Use sed to find the image line and replace the tag with the build number
-          # Assumes your YAML has 'image: osmanshaikh/spring-boot-app:tag'
+          
+          # 1. Update the image tag in the YAML file
+          # Ensure your file is named deployment.yaml (or change it to .yml below)
           sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.run_number }}|g" deployment.yml
-
-      - name: Commit and Push Changes
-        run: |
-          cd spring-boot-app-manifests
+          
+          # 2. Setup Git Identity (Using your personal info)
           git config --global user.email "usman_s@msn.com"
           git config --global user.name "usman"
-          git add deployment.yml
-          git commit -m "Update image to build ${{ github.run_number }}"
-          git push origin main
           
+          # 3. Commit and Push
+          git add deployment.yml
+          git commit -m "Update image to build ${{ github.run_number }} [skip ci]"
+          
+          # Use the PAT for authentication to push
+          git remote set-url origin https://x-access-token:${PAT}@github.com/OShaikhDevOps/spring-boot-app-manifests.git
+          git push origin main

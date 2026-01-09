@@ -2,8 +2,13 @@
 # But make sure to use the correct version of Java
 FROM adoptopenjdk/openjdk11:alpine-jre
 
+
 # Simply the artifact path
 ARG artifact=target/spring-boot-web.jar
+
+# Image tag argument and environment variable
+ARG IMAGE_TAG=latest
+ENV IMAGE_TAG=${IMAGE_TAG}
 
 WORKDIR /opt/app
 
